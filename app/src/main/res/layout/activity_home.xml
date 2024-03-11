@@ -1,0 +1,69 @@
+<?xml version="1.0"   encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white">
+
+    <!-- Replace the EditText with Pdf Tag -->
+    <TextView
+        android:id="@+id/tvPdfTag"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+
+        android:hint="PDF name"
+        android:textSize="18sp"
+        android:textColor="@android:color/black"
+        android:layout_marginTop="16dp"
+        android:gravity="center"
+        android:layout_centerHorizontal="true"/>
+
+    <Button
+        android:id="@+id/btnOpenPdf"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tvPdfTag"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"
+        android:text="Open PDF"/>
+
+    <TextView
+        android:id="@+id/qrres"
+        android:layout_width="220dp"
+        android:layout_height="40dp"
+
+        android:layout_below="@+id/btnOpenPdf"
+        android:layout_alignStart="@+id/btnScan"
+        android:layout_alignEnd="@+id/btnScan"
+        android:layout_marginStart="-64dp"
+        android:layout_marginTop="140dp"
+        android:layout_marginEnd="-67dp"
+        android:gravity="center"
+        android:textColor="@android:color/black"
+        android:textSize="18sp" />
+
+    <Button
+        android:id="@+id/btnScan"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+
+        android:layout_centerInParent="true"
+
+        android:text="Scan" />
+
+    <Button
+        android:id="@+id/upload"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/btnScan"
+        android:layout_alignEnd="@+id/btnScan"
+        android:layout_marginTop="161dp"
+        android:layout_marginEnd="-1dp"
+        android:text="Upload" />
+
+
+    <!-- Remove the EditText and WebView -->
+
+</RelativeLayout>
+
+
+
