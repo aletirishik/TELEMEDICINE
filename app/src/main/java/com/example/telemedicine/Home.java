@@ -21,6 +21,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.auth.api.signin.internal.Storage;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -39,6 +45,10 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import android.app.ProgressDialog;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -196,6 +206,22 @@ public class Home extends AppCompatActivity {
                                     patientInfo.setPatientId(qrres.getText().toString());
                                     patientInfo.setDownloadUrl(downloadUri); // Assuming downloadUri is the PDF download URL
                                     patientInfo.setDateTime(time); // Assuming currentDateTime is the date and time
+
+                                    String url="https://pdfstore-api.onrender.com/patients/D0901230003/"+downloadUri;
+                                    RequestQueue queue= Volley.newRequestQueue(Home.this);
+                                    StringRequest request=new StringRequest(Request.Method.POST, url,
+                                            new Response.Listener<String>() {
+                                                @Override
+                                                public void onResponse(String s) {
+                                                    Toast.makeText(Home.this,"Data Posted",Toast.LENGTH_SHORT).show();
+                                                }
+                                            }, new Response.ErrorListener() {
+                                        @Override
+                                        public void onErrorResponse(VolleyError volleyError) {
+                                            Toast.makeText(Home.this,"Data Posting Failed internet",Toast.LENGTH_SHORT).show();
+                                        }
+                                    });
+                                    queue.add(request);
 
                                     Map<String, Object> pinfo = new HashMap<>();
                                     pinfo.put("url", downloadUri);
