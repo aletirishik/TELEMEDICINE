@@ -59,6 +59,7 @@ dependencies {
     implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
 
     implementation 'com.android.volley:volley:1.2.1'
+    api 'com.github.ok2c.hc4.android:httpclient-android:0.1.0'
 
   // Use the latest version available
 

@@ -21,6 +21,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -207,20 +208,42 @@ public class Home extends AppCompatActivity {
                                     patientInfo.setDownloadUrl(downloadUri); // Assuming downloadUri is the PDF download URL
                                     patientInfo.setDateTime(time); // Assuming currentDateTime is the date and time
 
-                                    String url="https://pdfstore-api.onrender.com/patients/D0901230003/"+downloadUri;
-                                    RequestQueue queue= Volley.newRequestQueue(Home.this);
-                                    StringRequest request=new StringRequest(Request.Method.POST, url,
-                                            new Response.Listener<String>() {
-                                                @Override
-                                                public void onResponse(String s) {
-                                                    Toast.makeText(Home.this,"Data Posted",Toast.LENGTH_SHORT).show();
-                                                }
-                                            }, new Response.ErrorListener() {
+                                    String url="https://pdfstore-api.onrender.com/patients/D0901230003";
+                                    StringRequest request = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
                                         @Override
-                                        public void onErrorResponse(VolleyError volleyError) {
-                                            Toast.makeText(Home.this,"Data Posting Failed internet",Toast.LENGTH_SHORT).show();
+                                        public void onResponse(String response) {
+                                            if (!response.equals(null)) {
+                                                Log.e("Your Array Response", response);
+                                            } else {
+                                                Log.e("Your Array Response", "Data Null");
+                                            }
                                         }
-                                    });
+
+                                    }, new Response.ErrorListener() {
+                                        @Override
+                                        public void onErrorResponse(VolleyError error) {
+                                            Log.e("error is ", "" + error);
+                                        }
+                                    }) {
+
+                                        //This is for Headers If You Needed
+                                        @Override
+                                        public Map<String, String> getHeaders() throws AuthFailureError {
+                                            Map<String, String> params = new HashMap<String, String>();
+                                            params.put("Content-Type", "application/json; charset=UTF-8");
+                                            params.put("authorization", "JWT Bearer : svm");
+                                            return params;
+                                        }
+
+                                        //Pass Your Parameters here
+                                        @Override
+                                        protected Map<String, String> getParams() {
+                                            Map<String, String> params = new HashMap<String, String>();
+                                            params.put("pdfLink", downloadUri);
+                                            return params;
+                                        }
+                                    };
+                                    RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
                                     queue.add(request);
 
                                     Map<String, Object> pinfo = new HashMap<>();
