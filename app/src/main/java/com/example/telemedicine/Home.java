@@ -1,6 +1,6 @@
 package com.example.telemedicine;
-
 import static android.content.ContentValues.TAG;
+import static org.asynchttpclient.Dsl.asyncHttpClient;
 
 import android.content.ActivityNotFoundException;
 import android.content.ContentUris;
@@ -16,18 +16,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-
-import com.android.volley.AuthFailureError;
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
 import com.google.android.gms.auth.api.signin.internal.Storage;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -46,6 +37,10 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import android.app.ProgressDialog;
 
+import org.bson.json.JsonObject;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -55,21 +50,18 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
-
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
 
 @SuppressWarnings("deprecation")
 public class Home extends AppCompatActivity {
-
     private TextView tvPdfTag;
     private Button btnOpenPdf;
-
     private  TextView  qrres;
     private ProgressDialog progressDialog;
-
-
     private StorageReference storageReference;
     Button btn_scan;
     Button btn_upload;
@@ -106,19 +98,9 @@ public class Home extends AppCompatActivity {
             intentIntegrator.initiateScan();
         });
         btn_upload.setOnClickListener(v -> upload_to_firebase());
-                // Replace these with your connection details
-
-
-
-
-
-
-
-
-
-
+        // Replace these with your connection details
         // Set the PDF tag, you may replace this with the actual PDF tag logic
-    //    tvPdfTag.setText("Your PDF Tag");
+        //    tvPdfTag.setText("Your PDF Tag");
         Intent intent = getIntent();
         if (intent != null && Intent.ACTION_SEND.equals(intent.getAction()) && "application/pdf".equals(intent.getType())) {
             Uri pdfUri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
@@ -132,11 +114,8 @@ public class Home extends AppCompatActivity {
                 openPdf();  // Call the method to open the PDF
             }
         });
-
     }
-
     public void upload_to_firebase() {
-
 //        Toast.makeText(this,"Upload Started",Toast.LENGTH_SHORT).show();
 //
 //        Date date=new Date();
@@ -168,112 +147,77 @@ public class Home extends AppCompatActivity {
 //                                Toast.makeText(getApplicationContext(),"Uploaded successfully",Toast.LENGTH_LONG).show();
 //                            }
 //                        });
-
 //                }
 //        });  pac
-        
-        
+
+
         try {
-
-
             Toast.makeText(this, "Upload Started", Toast.LENGTH_SHORT).show();
-
             Date date = new Date();
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault());
             String time = simpleDateFormat.format(date);
-            String id = qrres.getText().toString() + time;
-
+            String id = "D090123000301" + time;
 // Upload to Storage
             FirebaseStorage storage = FirebaseStorage.getInstance();
             FirebaseFirestore db = FirebaseFirestore.getInstance();
             StorageReference storageReference = storage.getReference();
             StorageReference filepath = storageReference.child(id + "." + "pdf");
-
             filepath.putFile(getPdfUri())
                     .addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
                         @Override
                         public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
                             if (task.isSuccessful()) {
                                 // Retrieve download URL directly from the completed task
-                                Toast.makeText(Home.this, task.getResult().getUploadSessionUri().toString(), Toast.LENGTH_SHORT).show();
+                                Toast.makeText(Home.this, "Success sending to storage", Toast.LENGTH_SHORT).show();
                                 String downloadUri = task.getResult().getUploadSessionUri().toString();
                                 if (downloadUri != "null") {
-
-
-
-
-
                                     PatientInfo patientInfo = new PatientInfo();
-                                    patientInfo.setPatientId(qrres.getText().toString());
+                                    patientInfo.setPatientId("D090123000301");
                                     patientInfo.setDownloadUrl(downloadUri); // Assuming downloadUri is the PDF download URL
                                     patientInfo.setDateTime(time); // Assuming currentDateTime is the date and time
-
-                                    String url="https://pdfstore-api.onrender.com/patients/D0901230003";
-                                    StringRequest request = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
-                                        @Override
-                                        public void onResponse(String response) {
-                                            if (!response.equals(null)) {
-                                                Log.e("Your Array Response", response);
-                                            } else {
-                                                Log.e("Your Array Response", "Data Null");
-                                            }
+                                    try{
+                                        JSONObject obj=new JSONObject();
+                                        try{
+                                        obj.put("pdfLink",downloadUri);
                                         }
-
-                                    }, new Response.ErrorListener() {
-                                        @Override
-                                        public void onErrorResponse(VolleyError error) {
-                                            Log.e("error is ", "" + error);
+                                        catch (JSONException e){
+                                            e.printStackTrace();
                                         }
-                                    }) {
+                                        CompletableFuture<org.asynchttpclient.Response> response=asyncHttpClient()
+                                                .preparePost("https://telemedicine-sfoundation.azurewebsites.net/api/pdfStore/pdfdetails/D090123000301")
+                                                .setHeader("Content-Type","application/json")
+                                                .setHeader("Authorization","Bearer svm")
+                                                .setBody(downloadUri)
+                                                .execute()
+                                                .toCompletableFuture()
+                                                .exceptionally(t ->{
 
-                                        //This is for Headers If You Needed
-                                        @Override
-                                        public Map<String, String> getHeaders() throws AuthFailureError {
-                                            Map<String, String> params = new HashMap<String, String>();
-                                            params.put("Content-Type", "application/json; charset=UTF-8");
-                                            params.put("authorization", "JWT Bearer : svm");
-                                            return params;
-                                        }
+                                                    return null;
+                                                })
+                                                .thenApply(
+                                                        responsee -> {return responsee;}
+                                                );
 
-                                        //Pass Your Parameters here
-                                        @Override
-                                        protected Map<String, String> getParams() {
-                                            Map<String, String> params = new HashMap<String, String>();
-                                            params.put("pdfLink", downloadUri+"lllinkkk");
-                                            return params;
-                                        }
-                                    };
-                                    RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
-                                    queue.add(request);
+                                    }
+                                    catch (Exception e){
 
+                                    }
                                     Map<String, Object> pinfo = new HashMap<>();
                                     pinfo.put("url", downloadUri);
                                     pinfo.put("time", time);
-                                    Toast.makeText(Home.this, qrres.getText().toString(), Toast.LENGTH_SHORT).show();
-                                    db.collection("cities").document(qrres.getText().toString())
-                                            .set(pinfo)
-                                            .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                                @Override
-                                                public void onSuccess(Void aVoid) {
-                                                    Log.d(TAG, "DocumentSnapshot successfully written!");
-                                                }
-                                            })
-                                            .addOnFailureListener(new OnFailureListener() {
-                                                @Override
-                                                public void onFailure(@NonNull Exception e) {
-                                                    Log.w(TAG, "Error writing document", e);
-                                                }
-                                            });
-
+                                    Toast.makeText(Home.this, "D090123000301", Toast.LENGTH_SHORT).show();
 // You can set other properties of PatientInfo as needed
                                     db.collection("ids")
-                                            .document(qrres.getText().toString()).collection("documents")
-                                            .add(pinfo);
-
-                                            } else {
-                                                Toast.makeText(getApplicationContext(), "Download URL is null", Toast.LENGTH_LONG).show();
-                                            }
-
+                                            .document("D090123000301").collection("documents")
+                                            .add(pinfo).addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                                                @Override
+                                                public void onSuccess(DocumentReference documentReference) {
+                                                    Toast.makeText(Home.this, "Success saving link in firestore", Toast.LENGTH_SHORT).show();
+                                                }
+                                            });
+                                } else {
+                                    Toast.makeText(getApplicationContext(), "Download URL is null", Toast.LENGTH_LONG).show();
+                                }
 //                                task.getResult().getUploadSessionUri().addOnCompleteListener(new OnCompleteListener<Uri>() {
 //                                    @Override
 //                                    public void onComplete(@NonNull Task<Uri> urlTask) {
@@ -308,23 +252,13 @@ public class Home extends AppCompatActivity {
                         }
                     });
         }catch ( Exception  e){
-  e.printStackTrace();
+            e.printStackTrace();
         }
-
-
     }
-
-
-
-
     private void displayPdf(Uri pdfUri) {
         tvPdfTag.setText((CharSequence) pdfUri);
     }
-
-
-
     private Uri getPdfUri() {
-
         // Replace this with your logic to obtain the PDF Uri
         // For example, you might use Intent to receive PDF file from another app
         Intent intent = getIntent();
@@ -338,12 +272,10 @@ public class Home extends AppCompatActivity {
     private void openPdf() {
         // Replace this Uri with the actual Uri pointing to your PDF file
         Uri pdfUri = getPdfUri();
-
         // Create an Intent for viewing the PDF
         Intent viewIntent = new Intent(Intent.ACTION_VIEW);
         viewIntent.setDataAndType(pdfUri, "application/pdf");
         viewIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
         // Start the external PDF viewer
         try {
             startActivity(viewIntent);
@@ -351,10 +283,9 @@ public class Home extends AppCompatActivity {
             Log.e("PDFViewer", "No app to handle PDF");
         }
     }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-       // super.onActivityResult(requestCode, resultCode, data);
+        // super.onActivityResult(requestCode, resultCode, data);
 //        if (requestCode == PICK_PDF_REQUEST && resultCode == RESULT_OK && data != null) {
 //            Uri selectedPdfUri = data.getData();
 //
@@ -377,15 +308,9 @@ public class Home extends AppCompatActivity {
                 qrres.setText(intentResult.getContents());
             }
         }else {
-        super.onActivityResult(requestCode,resultCode,data);
-    }
-
-
-
-
-
-    // Construct the connection string
-
+            super.onActivityResult(requestCode,resultCode,data);
+        }
+        // Construct the connection string
 //
 //     Create a MongoClient instance
 //    class Mymongo {
@@ -401,5 +326,4 @@ public class Home extends AppCompatActivity {
 //
 //
 //    }
-
- }}
+    }}
