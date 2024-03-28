@@ -1,16 +1,9 @@
 package com.example.telemedicine;
-import static android.content.ContentValues.TAG;
-import static org.asynchttpclient.Dsl.asyncHttpClient;
-
 import android.content.ActivityNotFoundException;
-import android.content.ContentUris;
-import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.DocumentsContract;
-import android.provider.MediaStore;
+import android.util.ArrayMap;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -19,49 +12,41 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import com.google.android.gms.auth.api.signin.internal.Storage;
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.firestore.CollectionReference;
-import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
-import com.mongodb.MongoException;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
 import android.app.ProgressDialog;
 
-import org.bson.json.JsonObject;
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
+import okhttp3.MediaType;
+import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 @SuppressWarnings("deprecation")
 public class Home extends AppCompatActivity {
+
     private TextView tvPdfTag;
     private Button btnOpenPdf;
+
     private  TextView  qrres;
     private ProgressDialog progressDialog;
+
+
     private StorageReference storageReference;
     Button btn_scan;
     Button btn_upload;
@@ -99,6 +84,16 @@ public class Home extends AppCompatActivity {
         });
         btn_upload.setOnClickListener(v -> upload_to_firebase());
         // Replace these with your connection details
+
+
+
+
+
+
+
+
+
+
         // Set the PDF tag, you may replace this with the actual PDF tag logic
         //    tvPdfTag.setText("Your PDF Tag");
         Intent intent = getIntent();
@@ -114,8 +109,11 @@ public class Home extends AppCompatActivity {
                 openPdf();  // Call the method to open the PDF
             }
         });
+
     }
+
     public void upload_to_firebase() {
+
 //        Toast.makeText(this,"Upload Started",Toast.LENGTH_SHORT).show();
 //
 //        Date date=new Date();
@@ -147,77 +145,94 @@ public class Home extends AppCompatActivity {
 //                                Toast.makeText(getApplicationContext(),"Uploaded successfully",Toast.LENGTH_LONG).show();
 //                            }
 //                        });
+
 //                }
 //        });  pac
 
 
         try {
+
+
             Toast.makeText(this, "Upload Started", Toast.LENGTH_SHORT).show();
+
             Date date = new Date();
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault());
             String time = simpleDateFormat.format(date);
-            String id = "D090123000301" + time;
+            String id = qrres.getText().toString() + time;
+
 // Upload to Storage
             FirebaseStorage storage = FirebaseStorage.getInstance();
             FirebaseFirestore db = FirebaseFirestore.getInstance();
             StorageReference storageReference = storage.getReference();
             StorageReference filepath = storageReference.child(id + "." + "pdf");
+
             filepath.putFile(getPdfUri())
                     .addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
                         @Override
                         public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
                             if (task.isSuccessful()) {
                                 // Retrieve download URL directly from the completed task
-                                Toast.makeText(Home.this, "Success sending to storage", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(Home.this, task.getResult().getUploadSessionUri().toString(), Toast.LENGTH_SHORT).show();
                                 String downloadUri = task.getResult().getUploadSessionUri().toString();
                                 if (downloadUri != "null") {
+
+
+
+
+
                                     PatientInfo patientInfo = new PatientInfo();
-                                    patientInfo.setPatientId("D090123000301");
+                                    patientInfo.setPatientId(qrres.getText().toString());
                                     patientInfo.setDownloadUrl(downloadUri); // Assuming downloadUri is the PDF download URL
                                     patientInfo.setDateTime(time); // Assuming currentDateTime is the date and time
-                                    try{
-                                        JSONObject obj=new JSONObject();
-                                        try{
-                                        obj.put("pdfLink",downloadUri);
+                                    Map<String,String> jsonParams=new ArrayMap<>();
+                                    jsonParams.put("pdfLink",downloadUri);
+                                    RequestBody body=RequestBody.create(MediaType.parse("application/json; charset=utf-8"),new JSONObject(jsonParams).toString());
+                                    retrofit2.Retrofit retrofit =new retrofit2.Retrofit.Builder()
+                                            .baseUrl("https://telemedicine-sfoundation.azurewebsites.net/api/pdfStore/pdfdetails/")
+                                            .build();
+                                    api serv=retrofit.create(api.class);
+                                    Call<ResponseBody> response=serv.call_api("D090123000302",body);
+                                    response.enqueue(new Callback<ResponseBody>() {
+                                        @Override
+                                        public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                                            Toast.makeText(Home.this,"Stored on Mongo success",Toast.LENGTH_SHORT).show();
                                         }
-                                        catch (JSONException e){
-                                            e.printStackTrace();
+
+                                        @Override
+                                        public void onFailure(Call<ResponseBody> call, Throwable throwable) {
+
                                         }
-                                        CompletableFuture<org.asynchttpclient.Response> response=asyncHttpClient()
-                                                .preparePost("https://telemedicine-sfoundation.azurewebsites.net/api/pdfStore/pdfdetails/D090123000301")
-                                                .setHeader("Content-Type","application/json")
-                                                .setHeader("Authorization","Bearer svm")
-                                                .setBody(downloadUri)
-                                                .execute()
-                                                .toCompletableFuture()
-                                                .exceptionally(t ->{
+                                    });
 
-                                                    return null;
-                                                })
-                                                .thenApply(
-                                                        responsee -> {return responsee;}
-                                                );
 
-                                    }
-                                    catch (Exception e){
-
-                                    }
                                     Map<String, Object> pinfo = new HashMap<>();
                                     pinfo.put("url", downloadUri);
                                     pinfo.put("time", time);
-                                    Toast.makeText(Home.this, "D090123000301", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(Home.this, qrres.getText().toString(), Toast.LENGTH_SHORT).show();
+//                                    db.collection("cities").document(qrres.getText().toString())
+//                                            .set(pinfo)
+//                                            .addOnSuccessListener(new OnSuccessListener<Void>() {
+//                                                @Override
+//                                                public void onSuccess(Void aVoid) {
+//                                                    Log.d(TAG, "DocumentSnapshot successfully written!");
+//                                                }
+//                                            })
+//                                            .addOnFailureListener(new OnFailureListener() {
+//                                                @Override
+//                                                public void onFailure(@NonNull Exception e) {
+//                                                    Log.w(TAG, "Error writing document", e);
+//                                                }
+//                                            });
+
 // You can set other properties of PatientInfo as needed
                                     db.collection("ids")
-                                            .document("D090123000301").collection("documents")
-                                            .add(pinfo).addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
-                                                @Override
-                                                public void onSuccess(DocumentReference documentReference) {
-                                                    Toast.makeText(Home.this, "Success saving link in firestore", Toast.LENGTH_SHORT).show();
-                                                }
-                                            });
+                                            .document(qrres.getText().toString()).collection("documents")
+                                            .add(pinfo);
+
                                 } else {
                                     Toast.makeText(getApplicationContext(), "Download URL is null", Toast.LENGTH_LONG).show();
                                 }
+
 //                                task.getResult().getUploadSessionUri().addOnCompleteListener(new OnCompleteListener<Uri>() {
 //                                    @Override
 //                                    public void onComplete(@NonNull Task<Uri> urlTask) {
@@ -254,11 +269,21 @@ public class Home extends AppCompatActivity {
         }catch ( Exception  e){
             e.printStackTrace();
         }
+
+
     }
+
+
+
+
     private void displayPdf(Uri pdfUri) {
         tvPdfTag.setText((CharSequence) pdfUri);
     }
+
+
+
     private Uri getPdfUri() {
+
         // Replace this with your logic to obtain the PDF Uri
         // For example, you might use Intent to receive PDF file from another app
         Intent intent = getIntent();
@@ -272,10 +297,12 @@ public class Home extends AppCompatActivity {
     private void openPdf() {
         // Replace this Uri with the actual Uri pointing to your PDF file
         Uri pdfUri = getPdfUri();
+
         // Create an Intent for viewing the PDF
         Intent viewIntent = new Intent(Intent.ACTION_VIEW);
         viewIntent.setDataAndType(pdfUri, "application/pdf");
         viewIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
         // Start the external PDF viewer
         try {
             startActivity(viewIntent);
@@ -283,6 +310,7 @@ public class Home extends AppCompatActivity {
             Log.e("PDFViewer", "No app to handle PDF");
         }
     }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         // super.onActivityResult(requestCode, resultCode, data);
@@ -310,7 +338,13 @@ public class Home extends AppCompatActivity {
         }else {
             super.onActivityResult(requestCode,resultCode,data);
         }
+
+
+
+
+
         // Construct the connection string
+
 //
 //     Create a MongoClient instance
 //    class Mymongo {
@@ -326,4 +360,5 @@ public class Home extends AppCompatActivity {
 //
 //
 //    }
+
     }}
